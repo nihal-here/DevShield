@@ -13,18 +13,37 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.annotation.VisibleForTesting
 import com.devshield.R
 import com.devshield.core.NotificationController
 import com.devshield.core.SettingsController
 import com.devshield.core.StateRepository
 import com.devshield.databinding.ActivityMainBinding
+import com.devshield.model.SettingSnapshot
 import com.devshield.model.SupportedSetting
 import com.devshield.security.PermissionChecker
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
+
+    companion object {
+        private const val TAG = "MainActivity"
+
+        @VisibleForTesting
+        var defaultIoDispatcher: CoroutineDispatcher = Dispatchers.IO
+    }
+
+    @VisibleForTesting
+    var ioDispatcher: CoroutineDispatcher = defaultIoDispatcher
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var stateRepository: StateRepository
@@ -74,6 +93,7 @@ class MainActivity : AppCompatActivity() {
 
         setupListeners()
         updateTargetAppUI()
+        observeState()
     }
 
     override fun onResume() {
@@ -178,8 +198,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateRecoveryBanner() {
-        val snapshot = stateRepository.getSnapshot()
+    private fun observeState() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                stateRepository.observeSnapshot().collect { snapshot ->
+                    updateRecoveryBanner(snapshot)
+                    refreshDiagnostics()
+                }
+            }
+        }
+    }
+
+    private fun updateRecoveryBanner(snapshot: SettingSnapshot? = stateRepository.getSnapshot()) {
         if (snapshot != null && snapshot.hasModifications()) {
             binding.cardRecovery.visibility = View.VISIBLE
             binding.btnEnterProtectionMode.isEnabled = false
@@ -254,8 +284,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun refreshDiagnostics() {
-        val diag = settingsController.getDiagnosticState()
+        lifecycleScope.launch {
+            val diag = withContext(ioDispatcher) {
+                settingsController.getDiagnosticState()
+            }
+            updateDiagnosticViews(diag)
+        }
+    }
 
+    private fun updateDiagnosticViews(diag: Map<SupportedSetting, Int>) {
         val devState = diag[SupportedSetting.DEVELOPMENT_OPTIONS] ?: -1
         binding.tvDiagDevOptions.text = formatDiagValue(devState)
         binding.tvDiagDevOptions.setTextColor(getDiagColor(devState))

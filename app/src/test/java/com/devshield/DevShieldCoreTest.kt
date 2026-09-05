@@ -12,11 +12,14 @@ import com.devshield.model.SettingSnapshot
 import com.devshield.model.SupportedSetting
 import com.devshield.security.PermissionChecker
 import com.devshield.security.SettingsWhitelist
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -35,6 +38,8 @@ class DevShieldCoreTest {
 
     @Before
     fun setUp() {
+        com.devshield.ui.MainActivity.defaultIoDispatcher = kotlinx.coroutines.Dispatchers.Main.immediate
+
         context = ApplicationProvider.getApplicationContext()
         stateRepository = StateRepository(context)
         stateRepository.clearSnapshot()
@@ -49,6 +54,11 @@ class DevShieldCoreTest {
         Settings.Global.putInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, 1)
         Settings.Global.putInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, 1)
         Settings.Global.putInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, 0)
+    }
+
+    @After
+    fun tearDown() {
+        com.devshield.ui.MainActivity.defaultIoDispatcher = kotlinx.coroutines.Dispatchers.IO
     }
 
     private fun grantWriteSecureSettings(grant: Boolean) {
@@ -569,5 +579,133 @@ class DevShieldCoreTest {
         if (qsTile != null) {
             assertEquals(android.service.quicksettings.Tile.STATE_INACTIVE, qsTile.state)
         }
+    }
+
+    /**
+     * 23. Test: StateRepository -> observeActiveState emits initial and updated states.
+     */
+    @Test
+    fun testStateRepository_observeActiveState_emitsStateChanges() = runBlocking {
+        val states = mutableListOf<Boolean>()
+        val job = launch(kotlinx.coroutines.Dispatchers.Unconfined) {
+            stateRepository.observeActiveState().collect {
+                states.add(it)
+            }
+        }
+
+        shadowOf(android.os.Looper.getMainLooper()).idle()
+        assertEquals(listOf(false), states)
+
+        // Save a snapshot externally
+        val snapshot = SettingSnapshot(
+            timestamp = System.currentTimeMillis(),
+            targetAppPackage = null,
+            targetAppLabel = null,
+            previousValues = mapOf(SupportedSetting.DEVELOPMENT_OPTIONS to 1),
+            modifiedSettings = setOf(SupportedSetting.DEVELOPMENT_OPTIONS)
+        )
+        val externalRepo = StateRepository(context)
+        externalRepo.saveSnapshot(snapshot)
+
+        shadowOf(android.os.Looper.getMainLooper()).idle()
+        assertEquals(listOf(false, true), states)
+
+        // Clear snapshot
+        externalRepo.clearSnapshot()
+        shadowOf(android.os.Looper.getMainLooper()).idle()
+        assertEquals(listOf(false, true, false), states)
+
+        job.cancel()
+    }
+
+    /**
+     * 24. Test: UI State Synchronization -> MainActivity and Diagnostics immediately update when TileService toggles.
+     */
+    @Test
+    fun testMainActivity_synchronizesStateWhenTileServiceToggled() {
+        val activityController = org.robolectric.Robolectric.buildActivity(com.devshield.ui.MainActivity::class.java).setup()
+        val activity = activityController.get()
+        shadowOf(android.os.Looper.getMainLooper()).idle()
+
+        val cardRecovery = activity.findViewById<android.view.View>(R.id.cardRecovery)
+        val btnEnter = activity.findViewById<android.view.View>(R.id.btnEnterProtectionMode)
+        val tvDiagDevOptions = activity.findViewById<android.widget.TextView>(R.id.tvDiagDevOptions)
+        val tvDiagUsbDebugging = activity.findViewById<android.widget.TextView>(R.id.tvDiagUsbDebugging)
+        val tvDiagWirelessDebugging = activity.findViewById<android.widget.TextView>(R.id.tvDiagWirelessDebugging)
+
+        // Initial state: Protection is inactive, dev options & USB debugging are ON (1)
+        assertEquals("Recovery card should be GONE initially", android.view.View.GONE, cardRecovery.visibility)
+        assertTrue("Enter button should be enabled initially", btnEnter.isEnabled)
+        assertEquals("ON (1)", tvDiagDevOptions.text.toString())
+        assertEquals("ON (1)", tvDiagUsbDebugging.text.toString())
+        assertEquals("OFF (0)", tvDiagWirelessDebugging.text.toString())
+
+        // Simulate user tapping Quick Settings Tile ON
+        val tileService = org.robolectric.Robolectric.buildService(com.devshield.service.DevShieldTileService::class.java).create().get()
+        tileService.onClick()
+        shadowOf(android.os.Looper.getMainLooper()).idle()
+
+        // UI and diagnostics must immediately update to ACTIVE / OFF (0) without activity recreation
+        assertEquals("Recovery card should be VISIBLE after tile activates protection", android.view.View.VISIBLE, cardRecovery.visibility)
+        assertFalse("Enter button should be disabled after tile activates protection", btnEnter.isEnabled)
+        assertEquals("OFF (0)", tvDiagDevOptions.text.toString())
+        assertEquals("OFF (0)", tvDiagUsbDebugging.text.toString())
+        assertEquals("OFF (0)", tvDiagWirelessDebugging.text.toString())
+
+        // Simulate user tapping Quick Settings Tile OFF
+        tileService.onClick()
+        shadowOf(android.os.Looper.getMainLooper()).idle()
+
+        // UI and diagnostics must immediately update to INACTIVE / ON (1)
+        assertEquals("Recovery card should be GONE after tile restores protection", android.view.View.GONE, cardRecovery.visibility)
+        assertTrue("Enter button should be re-enabled after tile restores protection", btnEnter.isEnabled)
+        assertEquals("ON (1)", tvDiagDevOptions.text.toString())
+        assertEquals("ON (1)", tvDiagUsbDebugging.text.toString())
+        assertEquals("OFF (0)", tvDiagWirelessDebugging.text.toString())
+
+        // Repeat toggle to verify ongoing synchronization
+        tileService.onClick()
+        shadowOf(android.os.Looper.getMainLooper()).idle()
+        assertEquals(android.view.View.VISIBLE, cardRecovery.visibility)
+        assertEquals("OFF (0)", tvDiagDevOptions.text.toString())
+        assertEquals("OFF (0)", tvDiagUsbDebugging.text.toString())
+
+        tileService.onClick()
+        shadowOf(android.os.Looper.getMainLooper()).idle()
+        assertEquals(android.view.View.GONE, cardRecovery.visibility)
+        assertEquals("ON (1)", tvDiagDevOptions.text.toString())
+        assertEquals("ON (1)", tvDiagUsbDebugging.text.toString())
+
+        activityController.destroy()
+    }
+
+    /**
+     * 25. Test: Diagnostics Manual Refresh -> Tapping Refresh Diagnostics recalculates from settings.
+     */
+    @Test
+    fun testMainActivity_manualRefreshDiagnostics_updatesDisplay() {
+        val activityController = org.robolectric.Robolectric.buildActivity(com.devshield.ui.MainActivity::class.java).setup()
+        val activity = activityController.get()
+        shadowOf(android.os.Looper.getMainLooper()).idle()
+
+        val tvDiagDevOptions = activity.findViewById<android.widget.TextView>(R.id.tvDiagDevOptions)
+        val btnRefresh = activity.findViewById<android.view.View>(R.id.btnRefreshDiag)
+
+        assertEquals("ON (1)", tvDiagDevOptions.text.toString())
+
+        // Simulate external change in settings without protection mode
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, 0)
+
+        // Text remains unchanged until refreshed
+        assertEquals("ON (1)", tvDiagDevOptions.text.toString())
+
+        // Tap manual refresh button
+        btnRefresh.performClick()
+        shadowOf(android.os.Looper.getMainLooper()).idle()
+
+        // Diagnostics should now show new value
+        assertEquals("OFF (0)", tvDiagDevOptions.text.toString())
+
+        activityController.destroy()
     }
 }

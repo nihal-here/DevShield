@@ -219,14 +219,29 @@ DevShield is not affiliated with Geto and was implemented independently from scr
 
 ## 📦 Installation & Setup
 
-### 1. Download DevShield
+### Automatic Updates (Recommended)
+
+Install DevShield through **[Obtainium](https://github.com/ImranR98/Obtainium)** to automatically track and install future GitHub releases directly on your device:
+
+<a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/nihal-here/DevShield">
+  <img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Add to Obtainium" height="55">
+</a>
+
+*Direct deep link:* [`obtainium://add/https://github.com/nihal-here/DevShield`](obtainium://add/https://github.com/nihal-here/DevShield)
+
+---
+
+### Direct APK Download
+
 Download the single recommended APK (`DevShield-v1.3.0.apk`) from [GitHub Releases](https://github.com/nihal-here/DevShield/releases) or build it locally.
 
 ```bash
 adb install DevShield-v1.3.0.apk
 ```
 
-### 2. Grant Privileged Permission (One-Time Setup)
+---
+
+### Grant Privileged Permission (One-Time Setup)
 Because DevShield does not require root, it relies on Android's native `WRITE_SECURE_SETTINGS` permission (`signature|privileged|development`). Run the following command once from a computer via ADB:
 
 ```bash
@@ -235,7 +250,7 @@ adb shell pm grant com.devshield android.permission.WRITE_SECURE_SETTINGS
 
 *(On Android 13+, DevShield will request runtime Notification permission so it can post the persistent Restore action to your notification shade).*
 
-### 3. Add Quick Settings Tile (Optional)
+### Add Quick Settings Tile (Optional)
 Swipe down twice from the top of your screen to open the Quick Settings panel, tap the edit (pencil) icon, and drag the **DevShield** tile into your active tiles.
 
 ---

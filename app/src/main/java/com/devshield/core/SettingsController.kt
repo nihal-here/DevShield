@@ -148,6 +148,9 @@ class SettingsController(
             }
         }
 
+        // Notify state repository observers that settings writes have completed and verified
+        stateRepository.notifyStateChanged()
+
         return Result.success(snapshot)
     }
 

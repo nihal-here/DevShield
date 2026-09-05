@@ -5,6 +5,10 @@ import android.content.SharedPreferences
 import android.util.Log
 import com.devshield.model.SettingSnapshot
 import com.devshield.model.SupportedSetting
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.conflate
 
 /**
  * Manages persistent storage of Banking Mode state snapshots in private SharedPreferences.
@@ -28,6 +32,7 @@ class StateRepository(context: Context) {
         private const val KEY_SAVED_TARGET_PKG = "saved_target_pkg"
         private const val KEY_SAVED_TARGET_LABEL = "saved_target_label"
         private const val KEY_SUPPRESS_WIRELESS = "suppress_wireless_debugging"
+        private const val KEY_STATE_REVISION = "key_state_revision"
     }
 
     /**
@@ -35,6 +40,54 @@ class StateRepository(context: Context) {
      */
     fun hasActiveSnapshot(): Boolean {
         return prefs.getBoolean(KEY_ACTIVE, false)
+    }
+
+    /**
+     * Flow that emits whether an active snapshot exists.
+     * Emits the current state immediately upon collection and subsequent updates whenever
+     * the persistent state changes in SharedPreferences.
+     */
+    fun observeActiveState(): Flow<Boolean> = callbackFlow {
+        trySend(hasActiveSnapshot())
+
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_ACTIVE || key == null) {
+                trySend(hasActiveSnapshot())
+            }
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+
+        awaitClose {
+            prefs.unregisterOnSharedPreferenceChangeListener(listener)
+        }
+    }.conflate()
+
+    /**
+     * Flow that emits the active SettingSnapshot (or null if protection is inactive).
+     * Emits the current snapshot immediately upon collection and subsequent updates whenever
+     * the persistent state changes in SharedPreferences or after settings changes are verified.
+     */
+    fun observeSnapshot(): Flow<SettingSnapshot?> = callbackFlow {
+        trySend(getSnapshot())
+
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_ACTIVE || key == KEY_STATE_REVISION || key == null) {
+                trySend(getSnapshot())
+            }
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+
+        awaitClose {
+            prefs.unregisterOnSharedPreferenceChangeListener(listener)
+        }
+    }.conflate()
+
+    /**
+     * Explicitly notifies observers that settings writes have completed and verified,
+     * triggering reactive observers to update diagnostics and UI without polling.
+     */
+    fun notifyStateChanged() {
+        prefs.edit().putLong(KEY_STATE_REVISION, System.currentTimeMillis()).commit()
     }
 
     /**
