@@ -32,6 +32,7 @@ class RestoreReceiver : BroadcastReceiver() {
         result.fold(
             onSuccess = {
                 notificationController.cancelBankingModeNotification()
+                com.devshield.service.DevShieldTileService.requestTileUpdate(context)
                 Toast.makeText(context, "DevShield: Settings restored successfully.", Toast.LENGTH_SHORT).show()
             },
             onFailure = { error ->

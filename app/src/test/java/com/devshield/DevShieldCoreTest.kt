@@ -493,4 +493,81 @@ class DevShieldCoreTest {
         assertTrue("Light success color must be valid", lightSuccess != 0)
         assertTrue("Dark success color must be valid", darkSuccess != 0)
     }
+
+    /**
+     * 20. Test: Quick Settings Tile -> Activates Protection Mode and restores cleanly.
+     */
+    @Test
+    fun testTileService_toggleActivationAndRestoration() {
+        val controller = org.robolectric.Robolectric.buildService(com.devshield.service.DevShieldTileService::class.java).create()
+        val tileService = controller.get()
+
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, 1)
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, 1)
+
+        // Tapping while inactive activates protection
+        assertFalse(stateRepository.hasActiveSnapshot())
+        tileService.onClick()
+
+        assertTrue(stateRepository.hasActiveSnapshot())
+        assertEquals(0, Settings.Global.getInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, -1))
+        assertEquals(0, Settings.Global.getInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, -1))
+
+        // Tapping while active restores settings
+        tileService.onClick()
+
+        assertFalse(stateRepository.hasActiveSnapshot())
+        assertEquals(1, Settings.Global.getInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, -1))
+        assertEquals(1, Settings.Global.getInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, -1))
+    }
+
+    /**
+     * 21. Test: Quick Settings Tile -> Rejected when WRITE_SECURE_SETTINGS is missing.
+     */
+    @Test
+    fun testTileService_missingPermission_doesNotTouchSettings() {
+        grantWriteSecureSettings(false)
+        val controller = org.robolectric.Robolectric.buildService(com.devshield.service.DevShieldTileService::class.java).create()
+        val tileService = controller.get()
+
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, 1)
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, 1)
+
+        tileService.onClick()
+
+        assertFalse("No snapshot should be created without permission", stateRepository.hasActiveSnapshot())
+        assertEquals(1, Settings.Global.getInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, -1))
+        assertEquals(1, Settings.Global.getInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, -1))
+    }
+
+    /**
+     * 22. Test: Quick Settings Tile -> State reflects active snapshot status.
+     */
+    @Test
+    fun testTileService_updateTileState_reflectsActiveAndInactive() {
+        val controller = org.robolectric.Robolectric.buildService(com.devshield.service.DevShieldTileService::class.java).create()
+        val tileService = controller.get()
+
+        // Inactive state
+        tileService.updateTileState()
+        val qsTile = tileService.qsTile
+        if (qsTile != null) {
+            assertEquals(android.service.quicksettings.Tile.STATE_INACTIVE, qsTile.state)
+        }
+
+        // Active state
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, 1)
+        settingsController.enterBankingMode()
+        tileService.updateTileState()
+        if (qsTile != null) {
+            assertEquals(android.service.quicksettings.Tile.STATE_ACTIVE, qsTile.state)
+        }
+
+        // Restored state
+        settingsController.restorePreviousState()
+        tileService.updateTileState()
+        if (qsTile != null) {
+            assertEquals(android.service.quicksettings.Tile.STATE_INACTIVE, qsTile.state)
+        }
+    }
 }

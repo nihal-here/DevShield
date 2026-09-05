@@ -209,6 +209,7 @@ class MainActivity : AppCompatActivity() {
                 notificationController.showBankingModeNotification(selectedAppLabel)
                 updateRecoveryBanner()
                 refreshDiagnostics()
+                com.devshield.service.DevShieldTileService.requestTileUpdate(this)
 
                 Toast.makeText(this, "Protection Mode Active: Settings suppressed and verified.", Toast.LENGTH_SHORT).show()
 
@@ -239,6 +240,7 @@ class MainActivity : AppCompatActivity() {
                 notificationController.cancelBankingModeNotification()
                 updateRecoveryBanner()
                 refreshDiagnostics()
+                com.devshield.service.DevShieldTileService.requestTileUpdate(this)
                 Toast.makeText(this, "Settings restored to previous values successfully.", Toast.LENGTH_SHORT).show()
             },
             onFailure = { error ->

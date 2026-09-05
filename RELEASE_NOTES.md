@@ -1,20 +1,20 @@
-# DevShield v1.2.0
+# DevShield v1.3.0
 
-DevShield v1.2.0 introduces user-configurable Wireless Debugging (`adb_wifi_enabled`) protection, Shizuku compatibility controls, atomic rollback enhancements, and expanded test coverage.
+DevShield v1.3.0 introduces an Android Quick Settings tile, expanded unit testing, and refined documentation while maintaining zero background daemons and strict offline privacy.
 
 ## Highlights
-- **Wireless Debugging Protection**: Added native snapshotting, verified suppression, and state restoration for Wireless Debugging (`adb_wifi_enabled`) alongside Developer Options and USB Debugging.
-- **User-Configurable Suppression Toggle**: Introduced the "Suppress Wireless Debugging" setting inside the Protection Mode card (enabled by default). Users can keep Wireless Debugging active if their workflow requires it while still suppressing developer options and USB debugging.
-- **Shizuku / Wireless ADB Warning Callout**: Added an explicit in-app warning informing users that disabling Wireless Debugging terminates active ADB sessions (such as Shizuku). Clarifies that pairing information is retained by Android and Shizuku can simply be started again once Wireless Debugging is restored.
-- **Verified Suppression & Atomic Rollback**: Every setting modification is verified through an immediate synchronous read-back query to `Settings.Global`. Any write failure triggers an atomic rollback to pre-launch baseline values.
-- **Expanded System Diagnostics**: Real-time diagnostic monitor reflects whether Wireless Debugging is being suppressed based on the active user preference and explains dynamic port invalidation.
-- **Robust Test Coverage**: Expanded test suite to 19 Robolectric unit tests covering Wireless Debugging suppression, no-op handling when already disabled, exact baseline restoration, preference toggle persistence, process death recovery, and theme resolution.
+* **Quick Settings Tile**: Added an Android Quick Settings tile (`TileService`) enabling one-tap activation and restoration of Protection Mode directly from the notification shade. The tile integrates with the existing snapshot, allowlist, verification, and rollback logic without maintaining any persistent background services.
+* **Synchronized State**: The Quick Settings tile automatically stays synchronized with in-app controls and notification restore actions.
+* **Wireless Debugging Protection**: User-configurable suppression of Wireless Debugging (`adb_wifi_enabled`) alongside Developer Options and USB Debugging.
+* **Shizuku / Wireless ADB Compatibility**: Includes explicit preference toggling to avoid disrupting wireless ADB sessions or Shizuku workflows.
+* **Verified Suppression & Atomic Rollback**: Every setting modification is verified through immediate synchronous read-back. Any failure triggers an atomic rollback to pre-launch baseline values.
+* **Comprehensive Test Suite**: Expanded to 22 comprehensive Robolectric unit tests covering Quick Settings tile activation, restoration, permission checking, Wireless Debugging toggle behavior, and process-death recovery.
 
 ## Recommended Installation
-Download and install the signed APK attached to this release:
+Download and install the single recommended APK attached to this release:
 
 ```bash
-adb install DevShield-v1.2.0.apk
+adb install DevShield-v1.3.0.apk
 ```
 
 ### Grant Privileged Permission (One-Time Setup)
@@ -22,4 +22,4 @@ Grant `WRITE_SECURE_SETTINGS` via ADB (no root required):
 ```bash
 adb shell pm grant com.devshield android.permission.WRITE_SECURE_SETTINGS
 ```
-*(On Android 13+, grant runtime notification permissions when prompted to enable the persistent notification restore action).*
+*(On Android 13+, grant runtime notification permission when prompted to enable the persistent notification restore action).*
