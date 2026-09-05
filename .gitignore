@@ -10,9 +10,7 @@ build/
 .cxx
 *.apk
 *.aab
+# Local Android signing credentials
+keystore.properties
 *.jks
 *.keystore
-output.json
-
-# Kotlin
-.kotlin

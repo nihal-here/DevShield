@@ -31,39 +31,42 @@ jobs:
       - name: Run Unit Tests
         run: ./gradlew testDebugUnitTest --no-daemon
 
-      - name: Build APK
-        run: ./gradlew assembleRelease assembleDebug --no-daemon
-
-      - name: Package Single Installable Release APK
+      - name: Configure Release Signing
         env:
           SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
+          if [ -z "$SIGNING_KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "::error::Release signing secrets are missing in GitHub repository settings!"
+            echo "The release workflow requires SIGNING_KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, and KEY_PASSWORD to be configured."
+            exit 1
+          fi
+
+          mkdir -p /tmp/devshield-signing
+          echo "$SIGNING_KEYSTORE_BASE64" | base64 --decode > /tmp/devshield-signing/devshield-release.jks
+
+          cat << EOF > keystore.properties
+          DEVSHIELD_STORE_FILE=/tmp/devshield-signing/devshield-release.jks
+          DEVSHIELD_STORE_PASSWORD=$KEYSTORE_PASSWORD
+          DEVSHIELD_KEY_ALIAS=$KEY_ALIAS
+          DEVSHIELD_KEY_PASSWORD=$KEY_PASSWORD
+          EOF
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Package Release Artifacts
+        run: |
           mkdir -p release-artifacts
           OUTPUT_APK="release-artifacts/DevShield-${{ github.ref_name }}.apk"
+          
+          # Copy the release-signed APK produced by Gradle
+          cp app/build/outputs/apk/release/app-release.apk "$OUTPUT_APK"
 
-          if [ -n "$SIGNING_KEYSTORE_BASE64" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASSWORD" ]; then
-            echo "Release signing credentials detected. Signing release build with production keystore..."
-            echo "$SIGNING_KEYSTORE_BASE64" | base64 --decode > /tmp/release.keystore
-            
-            # Find apksigner from Android SDK
-            APKSIGNER=$(find $ANDROID_SDK_ROOT/build-tools -name apksigner | sort -V | tail -n 1)
-            $APKSIGNER sign --ks /tmp/release.keystore \
-              --ks-pass pass:"$KEYSTORE_PASSWORD" \
-              --ks-key-alias "$KEY_ALIAS" \
-              --key-pass pass:"$KEY_PASSWORD" \
-              --out "$OUTPUT_APK" \
-              app/build/outputs/apk/release/app-release-unsigned.apk
-            
-            rm -f /tmp/release.keystore
-            echo "Successfully signed release APK."
-          else
-            echo "No repository signing secrets configured. Packaging signed installable APK..."
-            # app-debug.apk is signed with standard Android debug keystore and directly installable on devices
-            cp app/build/outputs/apk/debug/app-debug.apk "$OUTPUT_APK"
-          fi
+          # Immediately shred and remove temporary signing credentials
+          rm -rf /tmp/devshield-signing keystore.properties
 
           # Generate SHA-256 checksum for the release artifact
           cd release-artifacts
