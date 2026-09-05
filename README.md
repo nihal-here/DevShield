@@ -43,6 +43,31 @@ Manually navigating system settings menus to toggle options off before opening a
 
 ---
 
+## 📦 Installation & Setup
+
+### Automatic Updates (Recommended)
+
+Install DevShield through **[Obtainium](https://github.com/ImranR98/Obtainium)** to automatically track and install future GitHub releases directly on your device:
+
+<a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/nihal-here/DevShield">
+  <img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Add to Obtainium" height="55">
+</a>
+
+*Direct deep link:* [`obtainium://add/https://github.com/nihal-here/DevShield`](obtainium://add/https://github.com/nihal-here/DevShield)
+
+---
+
+### Direct APK Download
+
+Download the single recommended APK (`DevShield-v1.3.0.apk`) from [GitHub Releases](https://github.com/nihal-here/DevShield/releases) or build it locally.
+
+```bash
+adb install DevShield-v1.3.0.apk
+```
+
+---
+
+
 ## ⚖️ What DevShield Is and Is Not
 
 | DevShield IS | DevShield IS NOT |
@@ -214,30 +239,6 @@ DevShield is not affiliated with Geto and was implemented independently from scr
 
 ### Shizuku
 [Shizuku](https://shizuku.rikka.app/) is an independent, third-party Android tool developed by Rikka. DevShield does not bundle or fork Shizuku. Shizuku is noted here because Wireless Debugging can serve as Shizuku's ADB transport; DevShield includes explicit preference controls to prevent disrupting Shizuku workflows.
-
----
-
-## 📦 Installation & Setup
-
-### Automatic Updates (Recommended)
-
-Install DevShield through **[Obtainium](https://github.com/ImranR98/Obtainium)** to automatically track and install future GitHub releases directly on your device:
-
-<a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/nihal-here/DevShield">
-  <img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Add to Obtainium" height="55">
-</a>
-
-*Direct deep link:* [`obtainium://add/https://github.com/nihal-here/DevShield`](obtainium://add/https://github.com/nihal-here/DevShield)
-
----
-
-### Direct APK Download
-
-Download the single recommended APK (`DevShield-v1.3.0.apk`) from [GitHub Releases](https://github.com/nihal-here/DevShield/releases) or build it locally.
-
-```bash
-adb install DevShield-v1.3.0.apk
-```
 
 ---
 
