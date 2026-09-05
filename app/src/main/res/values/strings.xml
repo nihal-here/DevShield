@@ -1,32 +1,33 @@
 <resources>
     <string name="app_name">DevShield</string>
-    <string name="app_subtitle">One-Tap Banking Mode</string>
+    <string name="app_subtitle">One-Tap Protection</string>
     <string name="permission_title">Privileged Permission Status</string>
     <string name="permission_granted">WRITE_SECURE_SETTINGS: GRANTED</string>
     <string name="permission_denied">WRITE_SECURE_SETTINGS: NOT GRANTED</string>
-    <string name="permission_explanation">DevShield requires WRITE_SECURE_SETTINGS to safely suppress developer flags without root. Run this ADB command from a computer:</string>
+    <string name="permission_explanation">DevShield requires WRITE_SECURE_SETTINGS to safely suppress developer settings without root. Run this ADB command from a computer:</string>
     <string name="btn_copy_adb">Copy ADB Command</string>
 
-    <string name="active_banner_title">🛡️ Banking Mode Active</string>
+    <string name="active_banner_title">🛡️ Protection Mode Active</string>
     <string name="active_banner_desc">Developer Options and USB Debugging are currently suppressed.</string>
-    <string name="usb_cable_notice">Notice: Some banking apps may also require the USB cable to be physically disconnected from the device.</string>
+    <string name="usb_cable_notice">Some apps may also require the USB cable to be physically disconnected from the device.</string>
     <string name="btn_restore">Restore Developer Settings</string>
 
     <string name="recovery_banner_title">⚠️ Un-Restored Session Detected</string>
     <string name="recovery_banner_desc">Settings remain suppressed from a previous session or reboot. Tap below to restore your original developer options.</string>
 
-    <string name="banking_mode_title">Banking Protection</string>
-    <string name="banking_mode_desc">Snapshots active flags, suppresses Developer Options &amp; USB Debugging, verifies read-back values, and optionally launches your banking app.</string>
-    <string name="target_app_section_title">Target Banking App</string>
+    <string name="protection_mode_title">Protection Mode</string>
+    <string name="protection_mode_desc">Snapshots your current debugging settings, temporarily disables them, verifies the changes, and optionally launches a selected app.</string>
+    <string name="target_app_section_title">Target App</string>
     <string name="no_target_app">No app selected (Toggle only)</string>
     <string name="btn_choose_app">Select App</string>
-    <string name="btn_enter_banking_mode">Enter Banking Mode</string>
+    <string name="btn_enter_protection_mode">Enter Protection Mode</string>
     <string name="btn_shield_and_launch">Shield &amp; Launch</string>
 
     <string name="diagnostics_title">Advanced / System Diagnostics</string>
     <string name="diag_dev_options">Developer Options (Global):</string>
     <string name="diag_usb_debugging">USB Debugging (Global):</string>
     <string name="diag_wireless_debugging">Wireless Debugging (Global):</string>
+    <string name="diag_wireless_note">Note: Wireless Debugging is monitored in diagnostics but intentionally excluded from automatic suppression to preserve active pairing and ephemeral ports.</string>
     <string name="btn_refresh_diag">Refresh Diagnostics</string>
     <string name="btn_test_write">Verify Write Capability</string>
 </resources>

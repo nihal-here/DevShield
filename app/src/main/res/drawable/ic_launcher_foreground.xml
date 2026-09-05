@@ -4,16 +4,22 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Outer Shield Body -->
+    <!-- Left Facet of Shield (Pure Crisp White) -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M54,26 C66,26 77,32 78,34 C78,54 68,71 54,82 C40,71 30,54 30,34 C31,32 42,26 54,26 Z" />
-    <!-- Inner Accent Layer -->
+        android:pathData="M54,26 L32,35 C32,58 41,72 54,82 L54,26 Z" />
+
+    <!-- Right Facet of Shield (Ice-Blue Dimension Tint) -->
     <path
-        android:fillColor="#2563EB"
-        android:pathData="M54,32 C63,32 71,37 72,39 C72,53 64,66 54,74 C44,66 36,53 36,39 C37,37 45,32 54,32 Z" />
-    <!-- Stylized 'D' Insignia -->
+        android:fillColor="#93C5FD"
+        android:pathData="M54,26 L76,35 C76,58 67,72 54,82 L54,26 Z" />
+
+    <!-- Outer Protective Border for Crisp Definition at Small Sizes -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M48,42 L55,42 C59.5,42 62.5,45 62.5,53 C62.5,61 59.5,64 55,64 L48,64 Z M52,46 L52,60 L54.5,60 C57,60 58.5,58 58.5,53 C58.5,48 57,46 54.5,46 Z" />
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M54,26 L76,35 C76,58 67,72 54,82 C41,72 32,58 32,35 Z" />
 </vector>

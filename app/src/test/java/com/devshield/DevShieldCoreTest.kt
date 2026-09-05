@@ -130,6 +130,39 @@ class DevShieldCoreTest {
     }
 
     /**
+     * 4b. Test: Wireless Debugging is NOT modified during Protection Mode to protect ephemeral ports & pairing.
+     */
+    @Test
+    fun testWirelessDebugging_notModifiedInProtectionMode() {
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, 1)
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, 1)
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, 1)
+
+        val result = settingsController.enterBankingMode()
+        assertTrue(result.isSuccess)
+
+        val snapshot = result.getOrNull()
+        assertNotNull(snapshot)
+        assertFalse(
+            "Wireless Debugging must NOT be in modifiedSettings",
+            snapshot!!.modifiedSettings.contains(SupportedSetting.WIRELESS_DEBUGGING)
+        )
+
+        // Developer Options and USB Debugging are suppressed
+        assertEquals(0, Settings.Global.getInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, -1))
+        assertEquals(0, Settings.Global.getInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, -1))
+
+        // Wireless Debugging remains intact
+        assertEquals(1, Settings.Global.getInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, -1))
+
+        // Restoration restores suppressed flags while leaving wireless debugging unaffected
+        settingsController.restorePreviousState()
+        assertEquals(1, Settings.Global.getInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, -1))
+        assertEquals(1, Settings.Global.getInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, -1))
+        assertEquals(1, Settings.Global.getInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, -1))
+    }
+
+    /**
      * 5. Test: partial write failure -> Changes rolled back and failure returned.
      */
     @Test

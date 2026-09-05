@@ -11,16 +11,16 @@ import com.devshield.R
 import com.devshield.receiver.RestoreReceiver
 
 /**
- * Manages the persistent, ongoing notification displayed while Banking Mode is active.
+ * Manages the persistent, ongoing notification displayed while Protection Mode is active.
  *
  * Provides a one-tap direct Restore action from the Android notification shade.
  */
 class NotificationController(private val context: Context) {
 
     companion object {
-        const val CHANNEL_ID = "devshield_banking_mode_channel"
+        const val CHANNEL_ID = "devshield_banking_mode_channel" // Kept for backwards compatibility
         const val NOTIFICATION_ID = 1001
-        private const val CHANNEL_NAME = "DevShield Banking Mode"
+        private const val CHANNEL_NAME = "DevShield Protection Mode"
     }
 
     private val notificationManager =
@@ -37,7 +37,7 @@ class NotificationController(private val context: Context) {
                 CHANNEL_NAME,
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                description = "Shows status and restore action when Banking Mode is active."
+                description = "Shows status and restore action when Protection Mode is active."
                 setShowBadge(false)
             }
             notificationManager.createNotificationChannel(channel)
@@ -45,7 +45,7 @@ class NotificationController(private val context: Context) {
     }
 
     /**
-     * Posts or updates the persistent Banking Mode notification.
+     * Posts or updates the persistent Protection Mode notification.
      */
     fun showBankingModeNotification(targetAppLabel: String? = null) {
         val restoreIntent = Intent(context, RestoreReceiver::class.java).apply {
@@ -73,7 +73,7 @@ class NotificationController(private val context: Context) {
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_shield)
-            .setContentTitle("DevShield: Banking Mode Active")
+            .setContentTitle("DevShield: Protection Mode Active")
             .setContentText(contentText)
             .setStyle(NotificationCompat.BigTextStyle().bigText(contentText))
             .setOngoing(true)
@@ -93,7 +93,7 @@ class NotificationController(private val context: Context) {
     }
 
     /**
-     * Cancels the Banking Mode notification upon successful restoration.
+     * Cancels the Protection Mode notification upon successful restoration.
      */
     fun cancelBankingModeNotification() {
         notificationManager.cancel(NOTIFICATION_ID)

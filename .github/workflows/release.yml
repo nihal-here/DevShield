@@ -37,6 +37,7 @@ jobs:
       - name: Prepare Artifacts
         run: |
           mkdir -p release-artifacts
+          cp app/build/outputs/apk/debug/app-debug.apk release-artifacts/DevShield-${{ github.ref_name }}.apk
           cp app/build/outputs/apk/debug/app-debug.apk release-artifacts/DevShield-${{ github.ref_name }}-debug.apk
           cp app/build/outputs/apk/release/app-release-unsigned.apk release-artifacts/DevShield-${{ github.ref_name }}-release-unsigned.apk
 

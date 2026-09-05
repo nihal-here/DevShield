@@ -39,12 +39,25 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Android 15/16 (API 35/36) Edge-to-Edge window insets handling
-        ViewCompat.setOnApplyWindowInsetsListener(binding.scrollViewRoot) { view, windowInsets ->
+        // Android 15/16 (API 35/36) Edge-to-Edge WindowInsets architecture
+        // Fixed Header receives top (status bar / camera cutout) and horizontal insets.
+        // ScrollView receives bottom (navigation / gesture bar) and horizontal insets.
+        ViewCompat.setOnApplyWindowInsetsListener(binding.rootContainer) { _, windowInsets ->
             val insets = windowInsets.getInsets(
                 WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
             )
-            view.setPadding(insets.left, insets.top, insets.right, insets.bottom)
+            binding.fixedHeaderContainer.setPadding(
+                insets.left,
+                insets.top,
+                insets.right,
+                0
+            )
+            binding.contentScrollView.setPadding(
+                insets.left,
+                0,
+                insets.right,
+                insets.bottom
+            )
             WindowInsetsCompat.CONSUMED
         }
 
@@ -93,14 +106,11 @@ class MainActivity : AppCompatActivity() {
             updateTargetAppUI()
         }
 
-        binding.btnEnterBankingMode.setOnClickListener {
-            enterBankingMode()
+        binding.btnEnterProtectionMode.setOnClickListener {
+            enterProtectionMode()
         }
 
-        binding.btnManualRestore.setOnClickListener {
-            restoreSettings()
-        }
-
+        // Single primary restore button in the active-state banner
         binding.btnRecoveryRestore.setOnClickListener {
             restoreSettings()
         }
@@ -132,11 +142,11 @@ class MainActivity : AppCompatActivity() {
             }
 
             val label = selectedAppLabel ?: "App"
-            binding.btnEnterBankingMode.text = "Shield & Launch $label"
+            binding.btnEnterProtectionMode.text = "Shield & Launch $label"
         } else {
             binding.layoutNoAppSelected.visibility = View.VISIBLE
             binding.layoutAppSelected.visibility = View.GONE
-            binding.btnEnterBankingMode.text = getString(R.string.btn_enter_banking_mode)
+            binding.btnEnterProtectionMode.text = getString(R.string.btn_enter_protection_mode)
         }
     }
 
@@ -167,20 +177,20 @@ class MainActivity : AppCompatActivity() {
         val snapshot = stateRepository.getSnapshot()
         if (snapshot != null && snapshot.hasModifications()) {
             binding.cardRecovery.visibility = View.VISIBLE
-            binding.btnEnterBankingMode.isEnabled = false
-            binding.btnEnterBankingMode.alpha = 0.5f
+            binding.btnEnterProtectionMode.isEnabled = false
+            binding.btnEnterProtectionMode.alpha = 0.5f
             val dateStr = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(snapshot.timestamp))
-            val appInfo = snapshot.targetAppLabel ?: snapshot.targetAppPackage ?: "Banking App"
+            val appInfo = snapshot.targetAppLabel ?: snapshot.targetAppPackage ?: "System"
             binding.tvRecoveryDetails.text =
-                "Active since $dateStr for '$appInfo'. Developer settings are currently suppressed.\n\nSettings remain suppressed until manually restored."
+                "Active since $dateStr for '$appInfo'. Developer and debugging settings are currently suppressed.\n\nSettings remain suppressed until manually restored."
         } else {
             binding.cardRecovery.visibility = View.GONE
-            binding.btnEnterBankingMode.isEnabled = true
-            binding.btnEnterBankingMode.alpha = 1.0f
+            binding.btnEnterProtectionMode.isEnabled = true
+            binding.btnEnterProtectionMode.alpha = 1.0f
         }
     }
 
-    private fun enterBankingMode() {
+    private fun enterProtectionMode() {
         val result = settingsController.enterBankingMode(
             targetAppPackage = selectedAppPackage,
             targetAppLabel = selectedAppLabel
@@ -192,7 +202,7 @@ class MainActivity : AppCompatActivity() {
                 updateRecoveryBanner()
                 refreshDiagnostics()
 
-                Toast.makeText(this, "Banking Mode Active: Settings suppressed and verified.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Protection Mode Active: Settings suppressed and verified.", Toast.LENGTH_SHORT).show()
 
                 // Launch target app if selected
                 selectedAppPackage?.let { pkg ->
@@ -206,7 +216,7 @@ class MainActivity : AppCompatActivity() {
             },
             onFailure = { error ->
                 AlertDialog.Builder(this)
-                    .setTitle("Cannot Enter Banking Mode")
+                    .setTitle("Cannot Enter Protection Mode")
                     .setMessage(error.message)
                     .setPositiveButton("OK", null)
                     .show()
