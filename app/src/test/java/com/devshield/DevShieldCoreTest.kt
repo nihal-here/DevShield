@@ -12,10 +12,13 @@ import com.devshield.security.PermissionChecker
 import com.devshield.security.SettingsWhitelist
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
+import androidx.core.content.ContextCompat
+import android.content.res.Configuration
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -347,5 +350,48 @@ class DevShieldCoreTest {
         val (clearedPkg, clearedLabel) = stateRepository.getSavedTargetApp()
         assertNull(clearedPkg)
         assertNull(clearedLabel)
+    }
+
+    /**
+     * 15. Test: Dark and Light Mode resource resolution.
+     * Verifies that colors adapt properly between system light and dark themes.
+     */
+    @Test
+    fun testDarkAndLightMode_resourceResolution() {
+        val lightConfig = Configuration(context.resources.configuration).apply {
+            uiMode = (uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or Configuration.UI_MODE_NIGHT_NO
+        }
+        val darkConfig = Configuration(context.resources.configuration).apply {
+            uiMode = (uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or Configuration.UI_MODE_NIGHT_YES
+        }
+
+        val lightContext = context.createConfigurationContext(lightConfig)
+        val darkContext = context.createConfigurationContext(darkConfig)
+
+        // Backgrounds must be distinct
+        val lightBg = ContextCompat.getColor(lightContext, R.color.background)
+        val darkBg = ContextCompat.getColor(darkContext, R.color.background)
+        assertNotEquals("Light and dark backgrounds must differ", lightBg, darkBg)
+
+        // Surfaces must be distinct
+        val lightSurface = ContextCompat.getColor(lightContext, R.color.surface)
+        val darkSurface = ContextCompat.getColor(darkContext, R.color.surface)
+        assertNotEquals("Light and dark surfaces must differ", lightSurface, darkSurface)
+
+        // Text primary must be high contrast (distinct between light and dark modes)
+        val lightText = ContextCompat.getColor(lightContext, R.color.text_primary)
+        val darkText = ContextCompat.getColor(darkContext, R.color.text_primary)
+        assertNotEquals("Light and dark text_primary must differ", lightText, darkText)
+
+        // Semantic colors (warning, success) must resolve without crash in both themes
+        val lightWarning = ContextCompat.getColor(lightContext, R.color.warning)
+        val darkWarning = ContextCompat.getColor(darkContext, R.color.warning)
+        assertTrue("Light warning color must be valid", lightWarning != 0)
+        assertTrue("Dark warning color must be valid", darkWarning != 0)
+
+        val lightSuccess = ContextCompat.getColor(lightContext, R.color.success)
+        val darkSuccess = ContextCompat.getColor(darkContext, R.color.success)
+        assertTrue("Light success color must be valid", lightSuccess != 0)
+        assertTrue("Dark success color must be valid", darkSuccess != 0)
     }
 }

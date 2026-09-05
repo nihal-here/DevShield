@@ -126,10 +126,10 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:background="#FEF9C3"
+                        android:background="@color/warning_notice_bg"
                         android:padding="8dp"
                         android:text="@string/usb_cable_notice"
-                        android:textColor="#854D0E"
+                        android:textColor="@color/warning_notice_text"
                         android:textSize="12sp"
                         android:textStyle="bold" />
 
@@ -139,9 +139,9 @@
                         android:layout_width="match_parent"
                         android:layout_height="50dp"
                         android:layout_marginTop="14dp"
-                        android:backgroundTint="@color/warning"
+                        android:backgroundTint="@color/button_warning_bg"
                         android:text="@string/btn_restore"
-                        android:textColor="@color/surface"
+                        android:textColor="@color/button_warning_text"
                         android:textSize="14sp"
                         android:textStyle="bold"
                         app:cornerRadius="10dp" />
@@ -156,7 +156,9 @@
                 android:layout_marginBottom="16dp"
                 app:cardBackgroundColor="@color/surface"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="2dp">
+                app:cardElevation="2dp"
+                app:strokeColor="@color/card_stroke"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -206,6 +208,7 @@
                             android:background="@color/surface_variant"
                             android:fontFamily="monospace"
                             android:padding="10dp"
+                            android:textColor="@color/text_primary"
                             android:textIsSelectable="true"
                             android:textSize="11sp"
                             tools:text="adb shell pm grant com.devshield android.permission.WRITE_SECURE_SETTINGS" />
@@ -229,7 +232,9 @@
                 android:layout_marginBottom="16dp"
                 app:cardBackgroundColor="@color/surface"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="2dp">
+                app:cardElevation="2dp"
+                app:strokeColor="@color/card_stroke"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -357,9 +362,9 @@
                         android:layout_width="match_parent"
                         android:layout_height="52dp"
                         android:layout_marginTop="16dp"
-                        android:backgroundTint="@color/primary"
+                        android:backgroundTint="@color/button_primary_bg"
                         android:text="@string/btn_enter_protection_mode"
-                        android:textColor="@color/surface"
+                        android:textColor="@color/button_primary_text"
                         android:textSize="15sp"
                         android:textStyle="bold"
                         app:cornerRadius="10dp" />
@@ -375,7 +380,9 @@
                 android:layout_marginBottom="16dp"
                 app:cardBackgroundColor="@color/surface"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="2dp">
+                app:cardElevation="2dp"
+                app:strokeColor="@color/card_stroke"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"

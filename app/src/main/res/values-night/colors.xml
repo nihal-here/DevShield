@@ -1,0 +1,39 @@
+<resources>
+    <!-- Brand / Primary Colors (Dark Mode) -->
+    <color name="primary">#60A5FA</color>
+    <color name="primary_variant">#3B82F6</color>
+    <color name="primary_container">#1E293B</color>
+    <color name="primary_accent">#3B82F6</color>
+    <color name="secondary">#2DD4BF</color>
+
+    <!-- Surfaces & Canvas Backgrounds (OLED / Deep Slate) -->
+    <color name="background">#0B0F19</color>
+    <color name="surface">#161E2E</color>
+    <color name="surface_variant">#232F42</color>
+    <color name="card_stroke">#26334A</color>
+    <color name="divider">#26334A</color>
+
+    <!-- Typography (High-Contrast Text) -->
+    <color name="text_primary">#F8FAFC</color>
+    <color name="text_secondary">#94A3B8</color>
+
+    <!-- Semantic: Error -->
+    <color name="error">#F87171</color>
+    <color name="error_surface">#450A0A</color>
+
+    <!-- Semantic: Success -->
+    <color name="success">#4ADE80</color>
+    <color name="success_surface">#064E3B</color>
+
+    <!-- Semantic: Warning & Active Protection State -->
+    <color name="warning">#F59E0B</color>
+    <color name="warning_surface">#2D1B06</color>
+    <color name="warning_notice_bg">#451A03</color>
+    <color name="warning_notice_text">#FDE68A</color>
+
+    <!-- Button Text & Background Overrides -->
+    <color name="button_primary_bg">#2563EB</color>
+    <color name="button_primary_text">#FFFFFF</color>
+    <color name="button_warning_bg">#D97706</color>
+    <color name="button_warning_text">#FFFFFF</color>
+</resources>
