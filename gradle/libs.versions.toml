@@ -1,0 +1,27 @@
+[versions]
+androidGradlePlugin = "8.9.0"
+kotlin = "2.1.10"
+androidxCoreKtx = "1.15.0"
+androidxAppCompat = "1.7.0"
+material = "1.12.0"
+androidxActivity = "1.10.1"
+androidxLifecycle = "2.8.7"
+junit = "4.13.2"
+androidxTestExt = "1.2.1"
+robolectric = "4.14.1"
+
+[libraries]
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCoreKtx" }
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "androidxAppCompat" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+androidx-activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref = "androidxActivity" }
+androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "androidxLifecycle" }
+
+# Testing
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+androidx-test-ext = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestExt" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
