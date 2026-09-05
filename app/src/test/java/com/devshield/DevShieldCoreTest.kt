@@ -2,7 +2,9 @@ package com.devshield
 
 import android.Manifest
 import android.content.Context
+import android.content.res.Configuration
 import android.provider.Settings
+import androidx.core.content.ContextCompat
 import androidx.test.core.app.ApplicationProvider
 import com.devshield.core.SettingsController
 import com.devshield.core.StateRepository
@@ -16,9 +18,6 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Assert.fail
-import androidx.core.content.ContextCompat
-import android.content.res.Configuration
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -40,14 +39,16 @@ class DevShieldCoreTest {
         stateRepository = StateRepository(context)
         stateRepository.clearSnapshot()
         stateRepository.saveTargetAppPreference(null, null)
+        stateRepository.setSuppressWirelessDebuggingEnabled(true)
         settingsController = SettingsController(context, stateRepository)
 
         // Default: grant WRITE_SECURE_SETTINGS for standard tests
         grantWriteSecureSettings(true)
 
-        // Reset global settings to known defaults (e.g. Developer Options = 1, USB Debugging = 1)
+        // Reset global settings to known defaults
         Settings.Global.putInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, 1)
         Settings.Global.putInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, 1)
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, 0)
     }
 
     private fun grantWriteSecureSettings(grant: Boolean) {
@@ -60,7 +61,7 @@ class DevShieldCoreTest {
     }
 
     /**
-     * 1. Test: permission absent -> Banking mode must fail with SecurityException.
+     * 1. Test: permission absent -> Protection mode must fail with SecurityException.
      */
     @Test
     fun testPermissionAbsent_failsGracefully() {
@@ -89,9 +90,10 @@ class DevShieldCoreTest {
      */
     @Test
     fun testSettingAlreadyOff_skipsModification() {
-        // Dev options ON (1), USB Debugging OFF (0)
+        // Dev options ON (1), USB Debugging OFF (0), Wireless Debugging OFF (0)
         Settings.Global.putInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, 1)
         Settings.Global.putInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, 0)
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, 0)
 
         val result = settingsController.enterBankingMode()
         assertTrue(result.isSuccess)
@@ -100,6 +102,7 @@ class DevShieldCoreTest {
         assertNotNull(snapshot)
         assertEquals(0, snapshot!!.previousValues[SupportedSetting.USB_DEBUGGING])
         assertEquals(1, snapshot.previousValues[SupportedSetting.DEVELOPMENT_OPTIONS])
+        assertEquals(0, snapshot.previousValues[SupportedSetting.WIRELESS_DEBUGGING])
 
         // Only DEVELOPMENT_OPTIONS needed modification
         assertTrue(snapshot.modifiedSettings.contains(SupportedSetting.DEVELOPMENT_OPTIONS))
@@ -107,11 +110,16 @@ class DevShieldCoreTest {
             "USB_DEBUGGING was already 0 so it should not be in modifiedSettings",
             snapshot.modifiedSettings.contains(SupportedSetting.USB_DEBUGGING)
         )
+        assertFalse(
+            "WIRELESS_DEBUGGING was already 0 so it should not be in modifiedSettings",
+            snapshot.modifiedSettings.contains(SupportedSetting.WIRELESS_DEBUGGING)
+        )
 
-        // Restoration should leave USB_DEBUGGING as 0
+        // Restoration should leave USB_DEBUGGING as 0 and WIRELESS_DEBUGGING as 0
         settingsController.restorePreviousState()
         assertEquals(0, Settings.Global.getInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, -1))
         assertEquals(1, Settings.Global.getInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, -1))
+        assertEquals(0, Settings.Global.getInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, -1))
     }
 
     /**
@@ -133,21 +141,106 @@ class DevShieldCoreTest {
     }
 
     /**
-     * 4b. Test: Wireless Debugging is NOT modified during Protection Mode to protect ephemeral ports & pairing.
+     * 5. Test: Wireless Debugging ON with preference ON -> Successfully suppressed to 0.
      */
     @Test
-    fun testWirelessDebugging_notModifiedInProtectionMode() {
+    fun testWirelessDebuggingOn_suppressedSuccessfully() {
         Settings.Global.putInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, 1)
         Settings.Global.putInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, 1)
         Settings.Global.putInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, 1)
 
-        val result = settingsController.enterBankingMode()
+        val result = settingsController.enterBankingMode(suppressWirelessDebugging = true)
+        assertTrue(result.isSuccess)
+
+        val snapshot = result.getOrNull()
+        assertNotNull(snapshot)
+        assertTrue(
+            "Wireless Debugging must be in modifiedSettings when suppressed",
+            snapshot!!.modifiedSettings.contains(SupportedSetting.WIRELESS_DEBUGGING)
+        )
+
+        // All three flags suppressed to 0
+        assertEquals(0, Settings.Global.getInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, -1))
+        assertEquals(0, Settings.Global.getInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, -1))
+        assertEquals(0, Settings.Global.getInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, -1))
+    }
+
+    /**
+     * 6. Test: Wireless Debugging already OFF -> No unnecessary modification.
+     */
+    @Test
+    fun testWirelessDebuggingAlreadyOff_skipsModification() {
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, 1)
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, 1)
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, 0)
+
+        val result = settingsController.enterBankingMode(suppressWirelessDebugging = true)
         assertTrue(result.isSuccess)
 
         val snapshot = result.getOrNull()
         assertNotNull(snapshot)
         assertFalse(
-            "Wireless Debugging must NOT be in modifiedSettings",
+            "Wireless Debugging was already 0, must not be in modifiedSettings",
+            snapshot!!.modifiedSettings.contains(SupportedSetting.WIRELESS_DEBUGGING)
+        )
+
+        assertEquals(0, Settings.Global.getInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, -1))
+    }
+
+    /**
+     * 7. Test: Wireless Debugging ON -> Restored to exact pre-protection value (1).
+     */
+    @Test
+    fun testWirelessDebuggingOn_restoredToExactPreviousValue() {
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, 1)
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, 1)
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, 1)
+
+        val enterResult = settingsController.enterBankingMode(suppressWirelessDebugging = true)
+        assertTrue(enterResult.isSuccess)
+        assertEquals(0, Settings.Global.getInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, -1))
+
+        // Restore
+        val restoreResult = settingsController.restorePreviousState()
+        assertTrue(restoreResult.isSuccess)
+        assertEquals(1, Settings.Global.getInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, -1))
+        assertEquals(1, Settings.Global.getInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, -1))
+        assertEquals(1, Settings.Global.getInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, -1))
+    }
+
+    /**
+     * 8. Test: Wireless Debugging originally OFF -> Remains OFF after restore.
+     */
+    @Test
+    fun testWirelessDebuggingOriginallyOff_remainsOffAfterRestore() {
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, 1)
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, 1)
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, 0)
+
+        settingsController.enterBankingMode(suppressWirelessDebugging = true)
+        settingsController.restorePreviousState()
+
+        assertEquals(1, Settings.Global.getInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, -1))
+        assertEquals(1, Settings.Global.getInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, -1))
+        assertEquals(0, Settings.Global.getInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, -1))
+    }
+
+    /**
+     * 9. Test: Wireless suppression preference OFF -> Wireless Debugging left untouched.
+     */
+    @Test
+    fun testWirelessSuppressionPreferenceOff_untouched() {
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, 1)
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, 1)
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, 1)
+
+        val result = settingsController.enterBankingMode(suppressWirelessDebugging = false)
+        assertTrue(result.isSuccess)
+
+        val snapshot = result.getOrNull()
+        assertNotNull(snapshot)
+        assertFalse(
+            "Wireless Debugging must NOT be in modifiedSettings when preference is disabled",
             snapshot!!.modifiedSettings.contains(SupportedSetting.WIRELESS_DEBUGGING)
         )
 
@@ -155,38 +248,51 @@ class DevShieldCoreTest {
         assertEquals(0, Settings.Global.getInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, -1))
         assertEquals(0, Settings.Global.getInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, -1))
 
-        // Wireless Debugging remains intact
+        // Wireless Debugging remains ON
         assertEquals(1, Settings.Global.getInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, -1))
 
-        // Restoration restores suppressed flags while leaving wireless debugging unaffected
+        // Restore leaves Wireless Debugging as 1
         settingsController.restorePreviousState()
-        assertEquals(1, Settings.Global.getInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, -1))
-        assertEquals(1, Settings.Global.getInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, -1))
         assertEquals(1, Settings.Global.getInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, -1))
     }
 
     /**
-     * 5. Test: partial write failure -> Changes rolled back and failure returned.
+     * 10. Test: Process death while Wireless Debugging has been modified -> Recovery state remains correct.
      */
     @Test
-    fun testPartialWriteFailure_rollsBackPreviousModifications() {
+    fun testWirelessDebugging_processDeathRecovery() {
         Settings.Global.putInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, 1)
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, 1)
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, 1)
 
-        try {
-            SettingsWhitelist.assertMutable(SupportedSetting.WIRELESS_DEBUGGING)
-            fail("WIRELESS_DEBUGGING should not be assertMutable")
-        } catch (e: SecurityException) {
-            // Expected
-        }
+        val result = settingsController.enterBankingMode(suppressWirelessDebugging = true)
+        assertTrue(result.isSuccess)
+
+        // Simulate app crash and new process reconstructing repository & controller
+        val newRepository = StateRepository(context)
+        assertTrue("Snapshot must survive process termination", newRepository.hasActiveSnapshot())
+
+        val snapshot = newRepository.getSnapshot()
+        assertNotNull(snapshot)
+        assertEquals(1, snapshot!!.previousValues[SupportedSetting.WIRELESS_DEBUGGING])
+        assertTrue(snapshot.modifiedSettings.contains(SupportedSetting.WIRELESS_DEBUGGING))
+
+        val newController = SettingsController(context, newRepository)
+        val restoreResult = newController.restorePreviousState()
+        assertTrue(restoreResult.isSuccess)
+        assertFalse(newRepository.hasActiveSnapshot())
+
+        assertEquals(1, Settings.Global.getInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, -1))
     }
 
     /**
-     * 6. Test: failed verification -> Handled if setting read back does not match.
+     * 11. Test: failed verification -> Handled if setting read back does not match.
      */
     @Test
     fun testFailedVerification_rollsBackSafely() {
         Settings.Global.putInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, 0)
         Settings.Global.putInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, 0)
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, 0)
 
         val result = settingsController.enterBankingMode()
         assertTrue(result.isSuccess)
@@ -194,31 +300,7 @@ class DevShieldCoreTest {
     }
 
     /**
-     * 7 & 8. Test: app crash / process killed -> State persists in SharedPreferences.
-     */
-    @Test
-    fun testProcessKilled_snapshotPersistsDurably() {
-        Settings.Global.putInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, 1)
-        val result = settingsController.enterBankingMode()
-        assertTrue(result.isSuccess)
-
-        // Simulate new process instance reconstructing repository and controller
-        val newRepository = StateRepository(context)
-        assertTrue("Snapshot must survive process termination", newRepository.hasActiveSnapshot())
-
-        val snapshot = newRepository.getSnapshot()
-        assertNotNull(snapshot)
-        assertEquals(1, snapshot!!.previousValues[SupportedSetting.DEVELOPMENT_OPTIONS])
-
-        val newController = SettingsController(context, newRepository)
-        val restoreResult = newController.restorePreviousState()
-        assertTrue(restoreResult.isSuccess)
-        assertFalse("Snapshot must be cleared after restoration", newRepository.hasActiveSnapshot())
-        assertEquals(1, Settings.Global.getInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, -1))
-    }
-
-    /**
-     * 9. Test: repeated Banking Mode activation -> Re-entering when already in banking mode is strictly rejected.
+     * 12. Test: repeated Protection Mode activation -> Re-entering when already active is strictly rejected.
      */
     @Test
     fun testRepeatedBankingModeActivation_strictlyRejected() {
@@ -250,41 +332,53 @@ class DevShieldCoreTest {
     }
 
     /**
-     * 10. Test: restore -> Returns settings to exact recorded pre-launch values.
+     * 13. Test: restore -> Returns settings to exact recorded pre-launch values.
      */
     @Test
     fun testRestore_restoresExactValues() {
         Settings.Global.putInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, 1)
         Settings.Global.putInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, 0)
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, 1)
 
-        settingsController.enterBankingMode()
+        settingsController.enterBankingMode(suppressWirelessDebugging = true)
         assertEquals(0, Settings.Global.getInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, -1))
         assertEquals(0, Settings.Global.getInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, -1))
+        assertEquals(0, Settings.Global.getInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, -1))
 
         // Restore
         val restoreResult = settingsController.restorePreviousState()
         assertTrue(restoreResult.isSuccess)
         assertEquals(1, Settings.Global.getInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, -1))
         assertEquals(0, Settings.Global.getInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, -1))
+        assertEquals(1, Settings.Global.getInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, -1))
     }
 
     /**
-     * 11. Test: reboot / recovery -> Snapshot persists across boot for manual recovery banner.
+     * 14. Test: reboot / recovery -> Snapshot persists across boot for manual recovery banner.
      */
     @Test
     fun testRebootRecovery_persistsForManualRecovery() {
         val snapshot = SettingSnapshot(
             timestamp = System.currentTimeMillis() - 100000L,
-            targetAppPackage = "com.example.bank",
-            targetAppLabel = "Bank App",
-            previousValues = mapOf(SupportedSetting.DEVELOPMENT_OPTIONS to 1, SupportedSetting.USB_DEBUGGING to 1),
-            modifiedSettings = setOf(SupportedSetting.DEVELOPMENT_OPTIONS, SupportedSetting.USB_DEBUGGING)
+            targetAppPackage = "com.example.app",
+            targetAppLabel = "Test App",
+            previousValues = mapOf(
+                SupportedSetting.DEVELOPMENT_OPTIONS to 1,
+                SupportedSetting.USB_DEBUGGING to 1,
+                SupportedSetting.WIRELESS_DEBUGGING to 1
+            ),
+            modifiedSettings = setOf(
+                SupportedSetting.DEVELOPMENT_OPTIONS,
+                SupportedSetting.USB_DEBUGGING,
+                SupportedSetting.WIRELESS_DEBUGGING
+            )
         )
         stateRepository.saveSnapshot(snapshot)
 
-        // Settings are currently 0 (device was rebooted while suppressed)
+        // Settings are currently 0 (device rebooted while suppressed)
         Settings.Global.putInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, 0)
         Settings.Global.putInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, 0)
+        Settings.Global.putInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, 0)
 
         assertTrue(stateRepository.hasActiveSnapshot())
 
@@ -295,10 +389,11 @@ class DevShieldCoreTest {
 
         assertEquals(1, Settings.Global.getInt(context.contentResolver, SupportedSetting.DEVELOPMENT_OPTIONS.key, -1))
         assertEquals(1, Settings.Global.getInt(context.contentResolver, SupportedSetting.USB_DEBUGGING.key, -1))
+        assertEquals(1, Settings.Global.getInt(context.contentResolver, SupportedSetting.WIRELESS_DEBUGGING.key, -1))
     }
 
     /**
-     * 12. Test: unsupported setting -> Rejection by whitelist.
+     * 15. Test: unsupported setting -> Rejection by whitelist.
      */
     @Test
     fun testUnsupportedSetting_rejectedByWhitelist() {
@@ -309,17 +404,13 @@ class DevShieldCoreTest {
 
         assertTrue(SettingsWhitelist.isKeyMutable("development_settings_enabled"))
         assertTrue(SettingsWhitelist.isKeyMutable("adb_enabled"))
+        assertTrue(SettingsWhitelist.isKeyMutable("adb_wifi_enabled"))
 
-        try {
-            SettingsWhitelist.assertMutable(SupportedSetting.WIRELESS_DEBUGGING)
-            fail("WIRELESS_DEBUGGING must be rejected for mutation")
-        } catch (e: SecurityException) {
-            // Expected
-        }
+        assertEquals(3, SettingsWhitelist.getMutableSettings().size)
     }
 
     /**
-     * 13. Test: corrupted / missing saved state -> Gracefully handled without crashing.
+     * 16. Test: corrupted / missing saved state -> Gracefully handled without crashing.
      */
     @Test
     fun testCorruptedSavedState_handlesGracefully() {
@@ -337,7 +428,7 @@ class DevShieldCoreTest {
     }
 
     /**
-     * 14. Test: target app preference persistence -> Saved and cleared properly.
+     * 17. Test: target app preference persistence -> Saved and cleared properly.
      */
     @Test
     fun testTargetAppPreference_persistsAndClears() {
@@ -353,7 +444,19 @@ class DevShieldCoreTest {
     }
 
     /**
-     * 15. Test: Dark and Light Mode resource resolution.
+     * 18. Test: Wireless Debugging preference persistence -> Saved and persisted.
+     */
+    @Test
+    fun testWirelessPreference_persistsAcrossRestarts() {
+        stateRepository.setSuppressWirelessDebuggingEnabled(false)
+        assertFalse(stateRepository.isSuppressWirelessDebuggingEnabled())
+
+        stateRepository.setSuppressWirelessDebuggingEnabled(true)
+        assertTrue(stateRepository.isSuppressWirelessDebuggingEnabled())
+    }
+
+    /**
+     * 19. Test: Dark and Light Mode resource resolution.
      * Verifies that colors adapt properly between system light and dark themes.
      */
     @Test
@@ -368,22 +471,18 @@ class DevShieldCoreTest {
         val lightContext = context.createConfigurationContext(lightConfig)
         val darkContext = context.createConfigurationContext(darkConfig)
 
-        // Backgrounds must be distinct
         val lightBg = ContextCompat.getColor(lightContext, R.color.background)
         val darkBg = ContextCompat.getColor(darkContext, R.color.background)
         assertNotEquals("Light and dark backgrounds must differ", lightBg, darkBg)
 
-        // Surfaces must be distinct
         val lightSurface = ContextCompat.getColor(lightContext, R.color.surface)
         val darkSurface = ContextCompat.getColor(darkContext, R.color.surface)
         assertNotEquals("Light and dark surfaces must differ", lightSurface, darkSurface)
 
-        // Text primary must be high contrast (distinct between light and dark modes)
         val lightText = ContextCompat.getColor(lightContext, R.color.text_primary)
         val darkText = ContextCompat.getColor(darkContext, R.color.text_primary)
         assertNotEquals("Light and dark text_primary must differ", lightText, darkText)
 
-        // Semantic colors (warning, success) must resolve without crash in both themes
         val lightWarning = ContextCompat.getColor(lightContext, R.color.warning)
         val darkWarning = ContextCompat.getColor(darkContext, R.color.warning)
         assertTrue("Light warning color must be valid", lightWarning != 0)

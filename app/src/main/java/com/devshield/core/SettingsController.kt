@@ -60,29 +60,36 @@ class SettingsController(
     @Synchronized
     fun enterBankingMode(
         targetAppPackage: String? = null,
-        targetAppLabel: String? = null
+        targetAppLabel: String? = null,
+        suppressWirelessDebugging: Boolean = stateRepository.isSuppressWirelessDebuggingEnabled()
     ): Result<SettingSnapshot> {
         if (!PermissionChecker.hasWriteSecureSettings(context)) {
             return Result.failure(
-                SecurityException("WRITE_SECURE_SETTINGS permission is not granted. Cannot enter Banking Mode.")
+                SecurityException("WRITE_SECURE_SETTINGS permission is not granted. Cannot enter Protection Mode.")
             )
         }
 
         if (stateRepository.hasActiveSnapshot()) {
             return Result.failure(
-                IllegalStateException("Banking Mode is already active. Please restore previous settings before re-entering.")
+                IllegalStateException("Protection Mode is already active. Please restore previous settings before re-entering.")
             )
         }
 
-        val suppressible = SupportedSetting.suppressibleSettings
+        val suppressible = SupportedSetting.suppressibleSettings.filter { setting ->
+            if (setting == SupportedSetting.WIRELESS_DEBUGGING) {
+                suppressWirelessDebugging
+            } else {
+                true
+            }
+        }
         val currentValues = mutableMapOf<SupportedSetting, Int>()
         val settingsToModify = mutableListOf<SupportedSetting>()
 
-        // 1. Read current state of all suppressible settings
-        for (setting in suppressible) {
+        // 1. Read current state of all supported settings for snapshotting
+        for (setting in SupportedSetting.entries) {
             val currentValue = readSetting(setting)
             currentValues[setting] = currentValue
-            if (currentValue != 0) {
+            if (setting in suppressible && currentValue != 0) {
                 settingsToModify.add(setting)
             }
         }

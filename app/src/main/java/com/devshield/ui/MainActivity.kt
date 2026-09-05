@@ -106,6 +106,11 @@ class MainActivity : AppCompatActivity() {
             updateTargetAppUI()
         }
 
+        binding.switchSuppressWireless.isChecked = stateRepository.isSuppressWirelessDebuggingEnabled()
+        binding.switchSuppressWireless.setOnCheckedChangeListener { _, isChecked ->
+            stateRepository.setSuppressWirelessDebuggingEnabled(isChecked)
+        }
+
         binding.btnEnterProtectionMode.setOnClickListener {
             enterProtectionMode()
         }
@@ -179,6 +184,7 @@ class MainActivity : AppCompatActivity() {
             binding.cardRecovery.visibility = View.VISIBLE
             binding.btnEnterProtectionMode.isEnabled = false
             binding.btnEnterProtectionMode.alpha = 0.5f
+            binding.switchSuppressWireless.isEnabled = false
             val dateStr = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(snapshot.timestamp))
             val appInfo = snapshot.targetAppLabel ?: snapshot.targetAppPackage ?: "System"
             binding.tvRecoveryDetails.text =
@@ -187,13 +193,15 @@ class MainActivity : AppCompatActivity() {
             binding.cardRecovery.visibility = View.GONE
             binding.btnEnterProtectionMode.isEnabled = true
             binding.btnEnterProtectionMode.alpha = 1.0f
+            binding.switchSuppressWireless.isEnabled = true
         }
     }
 
     private fun enterProtectionMode() {
         val result = settingsController.enterBankingMode(
             targetAppPackage = selectedAppPackage,
-            targetAppLabel = selectedAppLabel
+            targetAppLabel = selectedAppLabel,
+            suppressWirelessDebugging = binding.switchSuppressWireless.isChecked
         )
 
         result.fold(

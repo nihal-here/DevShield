@@ -33,7 +33,7 @@ enum class SupportedSetting(
         key = "adb_wifi_enabled",
         namespace = SettingNamespace.GLOBAL,
         label = "Wireless Debugging",
-        isSuppressible = false // Diagnostic read-only; not modified in standard Banking Mode
+        isSuppressible = true
     );
 
     companion object {

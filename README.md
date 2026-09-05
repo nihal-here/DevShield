@@ -1,7 +1,7 @@
 # DevShield 🛡️
 
 [![Build & Test](https://github.com/placeholder/devshield/actions/workflows/build.yml/badge.svg)](https://github.com/placeholder/devshield/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/Version-1.1.0-blue.svg)](https://github.com/placeholder/devshield/releases)
+[![Version](https://img.shields.io/badge/Version-1.2.0-blue.svg)](https://github.com/placeholder/devshield/releases)
 [![Platform](https://img.shields.io/badge/Platform-Android%208.0%2B%20(API%2026%E2%80%9336)-3DDC84.svg?logo=android)](https://developer.android.com)
 [![Target SDK](https://img.shields.io/badge/Target%20SDK-36%20(Android%2016)-blue.svg)](https://developer.android.com)
 [![Root Required](https://img.shields.io/badge/Root-Not%20Required-success.svg)]()
@@ -15,14 +15,16 @@ While financial, payment, and banking applications represent the most common use
 
 ## 🌟 Key Features
 
-* **🛡️ One-Tap Protection**: Automatically snapshots your debugging settings, suppresses `development_settings_enabled` and `adb_enabled`, verifies read-backs directly with Android's `SettingsProvider`, and optionally launches your target application.
+* **🛡️ One-Tap Protection**: Automatically snapshots your debugging settings, suppresses `development_settings_enabled`, `adb_enabled`, and (optionally) `adb_wifi_enabled`, verifies read-backs directly with Android's `SettingsProvider`, and optionally launches your target application.
+* **📶 Wireless Debugging Protection (v1.2.0)**: User-controllable toggle to suppress Wireless Debugging alongside USB debugging and developer options. Includes automatic value snapshotting, verified suppression, idempotent no-op when already disabled, atomic rollback, and complete restoration.
 * **📱 Target App Quick Selector**: Select your target application once. DevShield remembers your choice across launches, renders the app's real icon and name, and offers a single "Shield & Launch" action. (Selection is fully optional; toggle-only mode is supported).
 * **📌 Fixed Modern Header**: Android 16 / Material 3 edge-to-edge layout featuring a pinned top header that stays visible while scrolling, respecting hardware camera cutouts and system window insets without clipping or overlap.
+* **🌓 System Adaptive Dark & Light Themes**: Deliberately styled themes that follow system settings with high contrast and Material Design 3 elevation.
 * **🔔 Notification Shade Restore Action**: An ongoing, low-priority status notification gives you instant 1-tap restoration from anywhere on your device without reopening the app.
 * **⚡ Rock-Solid Durability & Crash Recovery**: State snapshots are committed to private storage *before* any system setting is touched. Even if DevShield's process is killed or the phone reboots, the un-restored state is safely detected upon next launch with an emergency restore banner.
 * **🔒 Strict Security Architecture**:
   * **100% Offline**: Zero `INTERNET` or `ACCESS_NETWORK_STATE` permissions in `AndroidManifest.xml`. Telemetry and network exfiltration are technically impossible.
-  * **Compile-Time Whitelist Boundary**: Only `DEVELOPMENT_OPTIONS` and `USB_DEBUGGING` are mutable. Arbitrary settings writes are rejected at the code boundary with a `SecurityException`.
+  * **Compile-Time Whitelist Boundary**: Only `DEVELOPMENT_OPTIONS`, `USB_DEBUGGING`, and `WIRELESS_DEBUGGING` are mutable. Arbitrary settings writes are rejected at the code boundary with a `SecurityException`.
   * **No Root / No Shizuku**: Operates using standard Android `WRITE_SECURE_SETTINGS` granted once via ADB.
   * **No Accessibility Services**: DevShield does not use accessibility services, eliminating any risk of keystroke interception or tapjacking.
 
@@ -31,7 +33,7 @@ While financial, payment, and banking applications represent the most common use
 ## 🚀 Quick Start Guide
 
 ### 1. Install DevShield
-Download the latest APK (`DevShield-v1.1.0.apk`) from the [Releases](https://github.com/placeholder/devshield/releases) page or build it locally using Gradle.
+Download the latest APK (`DevShield-v1.2.0.apk`) from the [Releases](https://github.com/placeholder/devshield/releases) page or build it locally using Gradle.
 
 ```bash
 adb install DevShield-debug.apk
@@ -48,10 +50,11 @@ adb shell pm grant com.devshield android.permission.WRITE_SECURE_SETTINGS
 
 ### 3. Use Protection Mode
 1. Open **DevShield**.
-2. Tap **Select App** and pick your target app from the list (optional; you can also toggle without selecting an app).
-3. Tap **Shield & Launch** (or **Enter Protection Mode**).
-4. Use your application.
-5. When finished, pull down the notification shade and tap **Restore Settings** (or tap **Restore Developer Settings** inside DevShield) to immediately re-enable your developer environment.
+2. Optionally configure **Suppress Wireless Debugging** (enabled by default).
+3. Tap **Select App** and pick your target app from the list (optional; you can also toggle without selecting an app).
+4. Tap **Shield & Launch** (or **Enter Protection Mode**).
+5. Use your application.
+6. When finished, pull down the notification shade and tap **Restore Settings** (or tap **Restore Developer Settings** inside DevShield) to immediately re-enable your developer environment.
 
 > [!NOTE]
 > **Physical USB Cable Disconnection**:
@@ -59,16 +62,20 @@ adb shell pm grant com.devshield android.permission.WRITE_SECURE_SETTINGS
 
 ---
 
-## 📡 Wireless Debugging: Technical Evaluation & Rationale
+## 📡 Wireless Debugging & Shizuku Compatibility
 
-DevShield displays **Wireless Debugging** (`adb_wifi_enabled`) in the **System Diagnostics** section, but **intentionally excludes it from automatic modification** during Protection Mode.
+Starting in **v1.2.0**, DevShield provides native suppression for **Wireless Debugging** (`adb_wifi_enabled`).
 
-### Why Wireless Debugging Is NOT Automatically Modified:
-1. **Dynamic Port Invalidation**: In AOSP (`AdbDebuggingManager`), setting `adb_wifi_enabled = 0` terminates the `adbd` TLS listener. When restored (`adb_wifi_enabled = 1`), AOSP binds to a *new, randomly allocated ephemeral TCP port*. Any active wireless ADB debugging session or host scripts connected to the previous port are immediately severed and cannot reconnect without manual re-discovery.
-2. **Wi-Fi Pairing & Trust Disruption**: On Android 14–16 and OEM skins (e.g., OxygenOS / ColorOS), Wireless Debugging maintains strict associations with paired workstations and Wi-Fi networks. Toggling this flag through `ContentResolver` outside of the system Settings UI can cause pairing state desynchronization.
-3. **Detection Redundancy**: Third-party root and debugging detection engines (RootBeer, Promon, Guardsquare DexGuard, ThreatFabric) check `DEVELOPMENT_SETTINGS_ENABLED` and `ADB_ENABLED`. Because Wireless Debugging cannot function when Developer Options are disabled, suppressing Developer Options and USB Debugging satisfies application integrity checks without breaking your wireless debugging setup.
+### User Preference Toggle
+Inside the Protection Mode card, users can toggle **Suppress Wireless Debugging** (default: **ON**):
+* **When ON**: `adb_wifi_enabled` is snapshotted and suppressed to `0` whenever Protection Mode is activated, and restored to its original value upon restoration.
+* **When OFF**: Wireless Debugging is left untouched, allowing wireless ADB sessions to remain connected while Developer Options and USB Debugging are suppressed.
 
-Diagnostics continue to monitor the live state of `adb_wifi_enabled` for complete system transparency.
+> [!WARNING]
+> **Shizuku and Wireless ADB Services Notice**:
+> Disabling Wireless Debugging may disconnect wireless ADB services such as Shizuku. If a service stops, start it again after restoring Wireless Debugging.
+>
+> In AOSP (`AdbDebuggingManager`), toggling `adb_wifi_enabled` from `0` back to `1` causes the daemon to rebind to a new ephemeral TCP port. If you use Shizuku via wireless debugging, you will need to re-link or tap "Start" in Shizuku once Wireless Debugging is restored.
 
 ---
 
@@ -124,7 +131,7 @@ Outputs:
 * `app/build/outputs/apk/release/app-release-unsigned.apk`
 
 ### Run Unit Tests
-DevShield includes 14 Robolectric unit tests validating permission checks, verified writes, rollbacks, crash durability, reboot recovery, whitelist rejection, wireless debugging preservation, and target app preference persistence:
+DevShield includes 19 comprehensive Robolectric unit tests validating permission checks, verified writes, rollbacks, crash durability, reboot recovery, compile-time whitelist rejection, Wireless Debugging suppression and restoration, preference toggle behavior, and target app preference persistence:
 
 ```bash
 ./gradlew testDebugUnitTest

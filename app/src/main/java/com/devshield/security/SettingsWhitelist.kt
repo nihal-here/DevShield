@@ -12,7 +12,8 @@ object SettingsWhitelist {
 
     private val ALLOWED_MUTABLE_SETTINGS: Set<SupportedSetting> = setOf(
         SupportedSetting.DEVELOPMENT_OPTIONS,
-        SupportedSetting.USB_DEBUGGING
+        SupportedSetting.USB_DEBUGGING,
+        SupportedSetting.WIRELESS_DEBUGGING
     )
 
     private val ALLOWED_MUTABLE_KEYS: Set<String> = ALLOWED_MUTABLE_SETTINGS.map { it.key }.toSet()

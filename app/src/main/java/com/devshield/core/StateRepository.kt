@@ -27,6 +27,7 @@ class StateRepository(context: Context) {
 
         private const val KEY_SAVED_TARGET_PKG = "saved_target_pkg"
         private const val KEY_SAVED_TARGET_LABEL = "saved_target_label"
+        private const val KEY_SUPPRESS_WIRELESS = "suppress_wireless_debugging"
     }
 
     /**
@@ -143,5 +144,19 @@ class StateRepository(context: Context) {
         val pkg = prefs.getString(KEY_SAVED_TARGET_PKG, null)
         val label = prefs.getString(KEY_SAVED_TARGET_LABEL, null)
         return Pair(pkg, label)
+    }
+
+    /**
+     * Checks whether Wireless Debugging suppression is enabled (default: true).
+     */
+    fun isSuppressWirelessDebuggingEnabled(): Boolean {
+        return prefs.getBoolean(KEY_SUPPRESS_WIRELESS, true)
+    }
+
+    /**
+     * Persists the user's preference for suppressing Wireless Debugging during Protection Mode.
+     */
+    fun setSuppressWirelessDebuggingEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_SUPPRESS_WIRELESS, enabled).apply()
     }
 }

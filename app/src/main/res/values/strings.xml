@@ -8,7 +8,7 @@
     <string name="btn_copy_adb">Copy ADB Command</string>
 
     <string name="active_banner_title">🛡️ Protection Mode Active</string>
-    <string name="active_banner_desc">Developer Options and USB Debugging are currently suppressed.</string>
+    <string name="active_banner_desc">Developer and debugging settings are currently suppressed.</string>
     <string name="usb_cable_notice">Some apps may also require the USB cable to be physically disconnected from the device.</string>
     <string name="btn_restore">Restore Developer Settings</string>
 
@@ -20,6 +20,11 @@
     <string name="target_app_section_title">Target App</string>
     <string name="no_target_app">No app selected (Toggle only)</string>
     <string name="btn_choose_app">Select App</string>
+    
+    <string name="title_suppress_wireless_debugging">Suppress Wireless Debugging</string>
+    <string name="desc_suppress_wireless_debugging">Disables Wireless Debugging while Protection Mode is active. Apps that rely on wireless ADB, including Shizuku, may lose their active connection and may need to be restarted afterward.</string>
+    <string name="warning_wireless_debugging_shizuku">Disabling Wireless Debugging may disconnect wireless ADB services such as Shizuku. If a service stops, start it again after restoring Wireless Debugging.</string>
+
     <string name="btn_enter_protection_mode">Enter Protection Mode</string>
     <string name="btn_shield_and_launch">Shield &amp; Launch</string>
 
@@ -27,7 +32,7 @@
     <string name="diag_dev_options">Developer Options (Global):</string>
     <string name="diag_usb_debugging">USB Debugging (Global):</string>
     <string name="diag_wireless_debugging">Wireless Debugging (Global):</string>
-    <string name="diag_wireless_note">Note: Wireless Debugging is monitored in diagnostics but intentionally excluded from automatic suppression to preserve active pairing and ephemeral ports.</string>
+    <string name="diag_wireless_note">Note: Wireless Debugging suppression depends on your setting. Disabling it may disconnect wireless ADB services such as Shizuku.</string>
     <string name="btn_refresh_diag">Refresh Diagnostics</string>
     <string name="btn_test_write">Verify Write Capability</string>
 </resources>
